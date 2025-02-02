@@ -1,63 +1,179 @@
+<!DOCTYPE html>
+<html lang="zh">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>窗户测量表单</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-</head>
-<body class="container py-4">
-    <h2 class="mb-4">窗户测量表单</h2>
-    <form id="measurementForm" class="needs-validation" novalidate>
-        <div class="row mb-3">
-            <div class="col-md-6">
-                <label class="form-label">客户编号</label>
-                <input type="text" class="form-control" id="customerID" readonly>
-            </div>
-        </div>
-        <div class="row mb-3">
-            <div class="col-md-6">
-                <label class="form-label">客户名称</label>
-                <input type="text" class="form-control" name="customerName" required>
-            </div>
-            <div class="col-md-6">
-                <label class="form-label">電話號碼</label>
-                <input type="tel" class="form-control" name="phone" required>
-            </div>
-        </div>
-        <div class="mb-3">
-            <label class="form-label">地址</label>
-            <input type="text" class="form-control" name="address" required>
-        </div>
-
-        <div id="windowsContainer">
-            <!-- 窗户测量部分将在这里动态添加 -->
-        </div>
-
-        <button type="button" class="btn btn-secondary mb-3" id="addWindow">添加窗户</button>
-        <button type="submit" class="btn btn-primary mb-3">提交表单</button>
-        <button type="button" class="btn btn-success mb-3" onclick="exportToExcel()">导出Excel</button>
-    </form>
-
-    <script>
-        let windowCount = 0;
-        const maxWindows = 100;
-        
-        // 生成客户编号
-        function generateCustomerID() {
-            const date = new Date();
-            const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-            return `CUS${date.getFullYear()}${(date.getMonth()+1).toString().padStart(2, '0')}${date.getDate().toString().padStart(2, '0')}${randomNum}`;
+    <style>
+        /* 自定義樣式 */
+        body {
+            background-color: #f8f9fa;
+            padding-bottom: 60px;
         }
 
-        document.getElementById('customerID').value = generateCustomerID();
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
 
-        // 添加窗户
-        document.getElementById('addWindow').addEventListener('click', function() {
-            if (windowCount >= maxWindows) {
-                alert('最多只能添加100个窗户');
-                return;
+        .form-section {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .window-section {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .window-section:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .form-label {
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .btn {
+            padding: 8px 20px;
+            margin-right: 10px;
+        }
+
+        /* 圖片預覽容器 */
+        .photo-preview {
+            max-width: 300px;
+            margin-top: 10px;
+        }
+
+        .photo-preview img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+        }
+
+        /* 響應式調整 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
             }
 
+            .form-section {
+                padding: 15px;
+            }
+
+            .btn {
+                width: 100%;
+                margin-bottom: 10px;
+                margin-right: 0;
+            }
+        }
+
+        /* 固定按鈕組在底部 */
+        .action-buttons {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: white;
+            padding: 10px 20px;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        @media (min-width: 768px) {
+            .action-buttons .btn {
+                width: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-4">
+        <div class="form-section">
+            <h2 class="mb-4">窗户测量表单</h2>
+            <form id="measurementForm" class="needs-validation" novalidate>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">客户编号</label>
+                        <input type="text" class="form-control" id="customerID" readonly>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">客户名称</label>
+                        <input type="text" class="form-control" name="customerName" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">電話號碼</label>
+                        <input type="tel" class="form-control" name="phone" required>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">地址</label>
+                    <input type="text" class="form-control" name="address" required>
+                </div>
+
+                <div id="windowsContainer">
+                    <!-- 窗户测量部分将在这里动态添加 -->
+                </div>
+
+                <!-- 固定在底部的按鈕組 -->
+                <div class="action-buttons">
+                    <button type="button" class="btn btn-secondary" id="addWindow">
+                        <i class="bi bi-plus-circle"></i> 添加窗户
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle"></i> 提交表单
+                    </button>
+                    <button type="button" class="btn btn-success" onclick="exportToExcel()">
+                        <i class="bi bi-file-excel"></i> 导出Excel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 添加 Bootstrap 圖標 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+
+    <!-- JavaScript 代碼 -->
+    <script>
+        // 生成客戶編號
+        function generateCustomerID() {
+            const date = new Date();
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const random = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
+            return `CUS${year}${month}${day}${random}`;
+        }
+
+        // 設置客戶編號
+        document.getElementById('customerID').value = generateCustomerID();
+
+        // 窗戶計數器
+        let windowCount = 0;
+
+        // 添加窗戶按鈕事件
+        document.getElementById('addWindow').addEventListener('click', function() {
             const windowDiv = document.createElement('div');
-            windowDiv.className = 'window-section border rounded p-3 mb-3';
+            windowDiv.className = 'window-section';
             windowDiv.innerHTML = `
-                <h4>窗户 #${windowCount + 1}</h4>
+                <h4>窗户 ${windowCount + 1}</h4>
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label">窗户宽度</label>
@@ -91,12 +207,12 @@
                 <div class="mb-3">
                     <label class="form-label">窗户照片</label>
                     <input type="file" class="form-control" name="windowPhoto_${windowCount}" accept="image/*">
-                    <div id="photoPreview_${windowCount}" class="mt-2"></div>
+                    <div id="photoPreview_${windowCount}" class="photo-preview"></div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">布料照片</label>
                     <input type="file" class="form-control" name="fabricPhoto_${windowCount}" accept="image/*">
-                    <div id="fabricPreview_${windowCount}" class="mt-2"></div>
+                    <div id="fabricPreview_${windowCount}" class="photo-preview"></div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">备注</label>
@@ -170,4 +286,3 @@
     </script>
 </body>
 </html>
-
