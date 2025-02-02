@@ -1,0 +1,173 @@
+<head>
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+</head>
+<body class="container py-4">
+    <h2 class="mb-4">窗户测量表单</h2>
+    <form id="measurementForm" class="needs-validation" novalidate>
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label class="form-label">客户编号</label>
+                <input type="text" class="form-control" id="customerID" readonly>
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label class="form-label">客户名称</label>
+                <input type="text" class="form-control" name="customerName" required>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">電話號碼</label>
+                <input type="tel" class="form-control" name="phone" required>
+            </div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">地址</label>
+            <input type="text" class="form-control" name="address" required>
+        </div>
+
+        <div id="windowsContainer">
+            <!-- 窗户测量部分将在这里动态添加 -->
+        </div>
+
+        <button type="button" class="btn btn-secondary mb-3" id="addWindow">添加窗户</button>
+        <button type="submit" class="btn btn-primary mb-3">提交表单</button>
+        <button type="button" class="btn btn-success mb-3" onclick="exportToExcel()">导出Excel</button>
+    </form>
+
+    <script>
+        let windowCount = 0;
+        const maxWindows = 100;
+        
+        // 生成客户编号
+        function generateCustomerID() {
+            const date = new Date();
+            const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+            return `CUS${date.getFullYear()}${(date.getMonth()+1).toString().padStart(2, '0')}${date.getDate().toString().padStart(2, '0')}${randomNum}`;
+        }
+
+        document.getElementById('customerID').value = generateCustomerID();
+
+        // 添加窗户
+        document.getElementById('addWindow').addEventListener('click', function() {
+            if (windowCount >= maxWindows) {
+                alert('最多只能添加100个窗户');
+                return;
+            }
+
+            const windowDiv = document.createElement('div');
+            windowDiv.className = 'window-section border rounded p-3 mb-3';
+            windowDiv.innerHTML = `
+                <h4>窗户 #${windowCount + 1}</h4>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">窗户宽度</label>
+                        <input type="number" class="form-control" name="windowWidth_${windowCount}" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">窗户高度</label>
+                        <input type="number" class="form-control" name="windowHeight_${windowCount}" required>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">窗框材质</label>
+                        <select class="form-select" name="material_${windowCount}" required>
+                            <option value="">请选择</option>
+                            <option value="木质">木质</option>
+                            <option value="铝合金">铝合金</option>
+                            <option value="塑钢">塑钢</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">布料材质</label>
+                        <select class="form-select" name="fabric_${windowCount}" required>
+                            <option value="">请选择</option>
+                            <option value="棉质">棉质</option>
+                            <option value="涤纶">涤纶</option>
+                            <option value="混纺">混纺</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">窗户照片</label>
+                    <input type="file" class="form-control" name="windowPhoto_${windowCount}" accept="image/*">
+                    <div id="photoPreview_${windowCount}" class="mt-2"></div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">布料照片</label>
+                    <input type="file" class="form-control" name="fabricPhoto_${windowCount}" accept="image/*">
+                    <div id="fabricPreview_${windowCount}" class="mt-2"></div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">备注</label>
+                    <textarea class="form-control" name="notes_${windowCount}"></textarea>
+                </div>
+            `;
+
+            document.getElementById('windowsContainer').appendChild(windowDiv);
+            windowCount++;
+        });
+
+        // 觸發添加第一個窗戶
+        document.getElementById('addWindow').click();
+
+        function exportToExcel() {
+            // 收集表單數據
+            const formData = {
+                customerID: document.getElementById('customerID').value,
+                customerName: document.querySelector('input[name="customerName"]').value,
+                phone: document.querySelector('input[name="phone"]').value,
+                address: document.querySelector('input[name="address"]').value,
+                windows: []
+            };
+
+            // 收集所有窗戶的數據
+            for (let i = 0; i < windowCount; i++) {
+                const windowData = {
+                    windowNumber: i + 1,
+                    width: document.querySelector(`input[name="windowWidth_${i}"]`)?.value,
+                    height: document.querySelector(`input[name="windowHeight_${i}"]`)?.value,
+                    material: document.querySelector(`select[name="material_${i}"]`)?.value,
+                    fabric: document.querySelector(`select[name="fabric_${i}"]`)?.value,
+                    notes: document.querySelector(`textarea[name="notes_${i}"]`)?.value
+                };
+                formData.windows.push(windowData);
+            }
+
+            // 創建工作表數據
+            const wsData = [
+                ['客戶編號', '客戶名稱', '電話號碼', '地址'],
+                [formData.customerID, formData.customerName, formData.phone, formData.address],
+                [], // 空行
+                ['窗戶編號', '寬度', '高度', '窗框材質', '布料材質', '備註']
+            ];
+
+            // 添加窗戶數據
+            formData.windows.forEach(window => {
+                wsData.push([
+                    window.windowNumber,
+                    window.width,
+                    window.height,
+                    window.material,
+                    window.fabric,
+                    window.notes
+                ]);
+            });
+
+            // 創建工作表
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+            // 創建工作簿
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "測量表單");
+
+            // 生成文件名
+            const fileName = `窗戶測量表單_${formData.customerID}.xlsx`;
+
+            // 保存文件
+            XLSX.writeFile(wb, fileName);
+        }
+    </script>
+</body>
+</html>
+
